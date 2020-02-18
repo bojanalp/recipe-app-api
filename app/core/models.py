@@ -64,17 +64,10 @@ class Recipe(models.Model):
     time_minutes = models.SmallIntegerField()
     price = models.DecimalField(max_digits=5, decimal_places=2)
     link = models.CharField(max_length=100, blank=True)
-    ingredients = models.ManyToManyField('Ingredient',
-                                         through="RecipeIngredients")
+    ingredients = models.ManyToManyField('Ingredient')
     tags = models.ManyToManyField('Tag')
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE)
 
     def __str__(self):
         return self.title
-
-
-class RecipeIngredients(models.Model):
-    recipe = models.ForeignKey('Recipe', on_delete=models.CASCADE)
-    ingredient = models.ForeignKey('Ingredient', on_delete=models.CASCADE)
-    quantity = models.CharField(max_length=50, blank=True, null=True)
