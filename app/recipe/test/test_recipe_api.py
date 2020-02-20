@@ -125,17 +125,14 @@ class PrivateRecipesApiTests(TestCase):
         payload = {
             'title': 'Chocolate cheesecake',
             'time_minutes': 30,
-            'price': 5.1
+            'price': Decimal('5.1')
         }
         res = self.client.post(RECIPES_URL, payload)
         recipe = Recipe.objects.get(id=res.data['id'])
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         for key in payload.keys():
-            if key != 'price':
-                self.assertEqual(payload[key], getattr(recipe, key))
-            else:
-                self.assertEqual(Decimal('5.1'), recipe.price)
+            self.assertEqual(payload[key], getattr(recipe, key))
 
     def test_create_recipe_with_tags(self):
         """Test creating a recipe with tags"""
@@ -174,3 +171,38 @@ class PrivateRecipesApiTests(TestCase):
         self.assertEqual(ingredients.count(), 2)
         self.assertIn(ingredient1, ingredients)
         self.assertIn(ingredient2, ingredients)
+
+    def test_partial_update_recipe(self):
+        """Test updating a recipe with patch"""
+        recipe = sample_recipe(user=self.user)
+        recipe.tags.add(sample_tag(user=self.user, name='Paprika'))
+        new_tag = sample_tag(user=self.user, name='Curry')
+        payload = {'title': 'Chicken tikka', 'tags': [new_tag.id]}
+
+        url = detail_url(recipe.id)
+        self.client.patch(url, payload)
+        recipe.refresh_from_db()
+        tags = recipe.tags.all()
+
+        self.assertEqual(recipe.title, payload['title'])
+        self.assertEqual(len(tags), 1)
+        self.assertIn(new_tag, tags)
+
+    def test_full_update_recipe(self):
+        """Test updating a recipe with put"""
+        recipe = sample_recipe(user=self.user)
+        recipe.tags.add(sample_tag(user=self.user))
+        payload = {
+            'title': 'Spagetti carbonara',
+            'time_minutes': 25,
+            'price': Decimal('5.45')
+        }
+
+        url = detail_url(recipe.id)
+        self.client.put(url, payload)
+        recipe.refresh_from_db()
+        tags = recipe.tags.all()
+
+        for key in payload.keys():
+            self.assertEqual(payload[key], getattr(recipe, key))
+        self.assertEqual(tags.count(), 0)
